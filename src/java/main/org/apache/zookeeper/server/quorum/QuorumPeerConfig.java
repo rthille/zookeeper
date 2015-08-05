@@ -75,7 +75,7 @@ public class QuorumPeerConfig {
     protected boolean syncEnabled = true;
 
     protected LearnerType peerType = LearnerType.PARTICIPANT;
-    
+
     /**
      * Minimum snapshot retain count.
      * @see org.apache.zookeeper.server.PurgeTxnLog#purge(File, File, int)
@@ -185,30 +185,26 @@ public class QuorumPeerConfig {
                        + " does not have the form host:port or host:port:port " +
                        " or host:port:port:type");
                 }
-                InetSocketAddress addr = new InetSocketAddress(parts[0],
-                        Integer.parseInt(parts[1]));
-                if (parts.length == 2) {
-                    servers.put(Long.valueOf(sid), new QuorumServer(sid, addr));
-                } else if (parts.length == 3) {
-                    InetSocketAddress electionAddr = new InetSocketAddress(
-                            parts[0], Integer.parseInt(parts[2]));
-                    servers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
-                            electionAddr));
-                } else if (parts.length == 4) {
-                    InetSocketAddress electionAddr = new InetSocketAddress(
-                            parts[0], Integer.parseInt(parts[2]));
-                    LearnerType type = LearnerType.PARTICIPANT;
+                LearnerType type = null;
+                String hostname = parts[0];
+                Integer port = Integer.parseInt(parts[1]);
+                Integer electionPort = null;
+                if (parts.length > 2){
+                	electionPort = Integer.parseInt(parts[2]);
+                }
+                if (parts.length > 3){
                     if (parts[3].toLowerCase().equals("observer")) {
                         type = LearnerType.OBSERVER;
-                        observers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
-                                electionAddr,type));
                     } else if (parts[3].toLowerCase().equals("participant")) {
                         type = LearnerType.PARTICIPANT;
-                        servers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
-                                electionAddr,type));
                     } else {
                         throw new ConfigException("Unrecognised peertype: " + value);
                     }
+                }
+                if (type == LearnerType.OBSERVER){
+                    observers.put(Long.valueOf(sid), new QuorumServer(sid, hostname, port, electionPort, type));
+                } else {
+                    servers.put(Long.valueOf(sid), new QuorumServer(sid, hostname, port, electionPort, type));
                 }
             } else if (key.startsWith("group")) {
                 int dot = key.indexOf('.');
@@ -233,7 +229,7 @@ public class QuorumPeerConfig {
                 System.setProperty("zookeeper." + key, value);
             }
         }
-        
+
         // Reset to MIN_SNAP_RETAIN_COUNT if invalid (less than 3)
         // PurgeTxnLog.purge(File, File, int) will not allow to purge less
         // than 3.
@@ -339,7 +335,7 @@ public class QuorumPeerConfig {
             // Now add observers to servers, once the quorums have been
             // figured out
             servers.putAll(observers);
-    
+
             File myIdFile = new File(dataDir, "myid");
             if (!myIdFile.exists()) {
                 throw new IllegalArgumentException(myIdFile.toString()
@@ -359,7 +355,7 @@ public class QuorumPeerConfig {
                 throw new IllegalArgumentException("serverid " + myIdString
                         + " is not a number");
             }
-            
+
             // Warn about inconsistent peer type
             LearnerType roleByServersList = observers.containsKey(serverId) ? LearnerType.OBSERVER
                     : LearnerType.PARTICIPANT;
@@ -367,7 +363,7 @@ public class QuorumPeerConfig {
                 LOG.warn("Peer type from servers list (" + roleByServersList
                         + ") doesn't match peerType (" + peerType
                         + "). Defaulting to servers list.");
-    
+
                 peerType = roleByServersList;
             }
         }
@@ -384,8 +380,8 @@ public class QuorumPeerConfig {
     public int getInitLimit() { return initLimit; }
     public int getSyncLimit() { return syncLimit; }
     public int getElectionAlg() { return electionAlg; }
-    public int getElectionPort() { return electionPort; }    
-    
+    public int getElectionPort() { return electionPort; }
+
     public int getSnapRetainCount() {
         return snapRetainCount;
     }
@@ -393,12 +389,12 @@ public class QuorumPeerConfig {
     public int getPurgeInterval() {
         return purgeInterval;
     }
-    
+
     public boolean getSyncEnabled() {
         return syncEnabled;
     }
 
-    public QuorumVerifier getQuorumVerifier() {   
+    public QuorumVerifier getQuorumVerifier() {
         return quorumVerifier;
     }
 

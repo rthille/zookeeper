@@ -56,7 +56,7 @@ public class FLECompatibilityTest extends ZKTestCase {
     HashMap<Long,QuorumServer> peers;
     File tmpdir[];
     int port[];
-    
+
     @Before
     public void setUp() throws Exception {
         count = 3;
@@ -64,13 +64,13 @@ public class FLECompatibilityTest extends ZKTestCase {
         tmpdir = new File[count];
         port = new int[count];
     }
-    
+
     @After
     public void tearDown() throws Exception {
-        
+
     }
-    
-    class MockFLEMessengerBackward {   
+
+    class MockFLEMessengerBackward {
         QuorumCnxManager manager;
         QuorumPeer self;
         long logicalclock = 1L;
@@ -78,11 +78,11 @@ public class FLECompatibilityTest extends ZKTestCase {
         LinkedBlockingQueue<ToSend> internalqueue = new LinkedBlockingQueue<ToSend>();
         LinkedBlockingQueue<Notification> recvqueue = new LinkedBlockingQueue<Notification>();
         WorkerReceiver wr;
-        
+
         MockFLEMessengerBackward(QuorumPeer self, QuorumCnxManager manager){
             this.manager = manager;
             this.self = self;
-            
+
             this.wr = new WorkerReceiver(manager);
 
             Thread t = new Thread(this.wr,
@@ -90,14 +90,14 @@ public class FLECompatibilityTest extends ZKTestCase {
             t.setDaemon(true);
             t.start();
         }
-        
+
         void halt() {
             wr.stop = true;
         }
-        
+
         /*
          * This class has been copied from before adding versions to notifications.
-         * 
+         *
          * {@see https://issues.apache.org/jira/browse/ZOOKEEPER-1808}
          */
         class WorkerReceiver implements Runnable {
@@ -118,7 +118,7 @@ public class FLECompatibilityTest extends ZKTestCase {
             Vote getVote(){
                 return new Vote(proposedLeader, proposedZxid, proposedEpoch);
             }
-            
+
             public void run() {
 
                 Message response;
@@ -257,39 +257,39 @@ public class FLECompatibilityTest extends ZKTestCase {
             }
         }
     }
-    
+
     class MockFLEMessengerForward extends FastLeaderElection {
-        
+
         MockFLEMessengerForward(QuorumPeer self, QuorumCnxManager manager){
             super( self, manager );
         }
-        
+
         void halt() {
             super.shutdown();
         }
     }
-    
+
     void populate()
     throws Exception {
         for (int i = 0; i < count; i++) {
             peers.put(Long.valueOf(i),
-                    new QuorumServer(i,
-                            new InetSocketAddress(PortAssignment.unique()),
-                    new InetSocketAddress(PortAssignment.unique())));
+                      new QuorumServer(i, "0.0.0.0",
+                                       PortAssignment.unique(),
+                                       PortAssignment.unique(), null));
             tmpdir[i] = ClientBase.createTmpDir();
             port[i] = PortAssignment.unique();
         }
     }
-    
+
     @Test(timeout=20000)
-    public void testBackwardCompatibility() 
+    public void testBackwardCompatibility()
     throws Exception {
         populate();
-        
+
         QuorumPeer peer = new QuorumPeer(peers, tmpdir[0], tmpdir[0], port[0], 3, 0, 1000, 2, 2);
         peer.setPeerState(ServerState.LOOKING);
         QuorumCnxManager mng = new QuorumCnxManager(peer);
-        
+
         /*
          * Check that it generates an internal notification correctly
          */
@@ -302,7 +302,7 @@ public class FLECompatibilityTest extends ZKTestCase {
         Assert.assertTrue("Wrong zxid", n.zxid == 0x1);
         Assert.assertTrue("Wrong epoch", n.electionEpoch == 1);
         Assert.assertTrue("Wrong epoch", n.peerEpoch == 1);
-        
+
         /*
          * Check that it sends a notification back to the sender
          */
@@ -317,16 +317,16 @@ public class FLECompatibilityTest extends ZKTestCase {
         Assert.assertTrue("Wrong epoch", m.electionEpoch == 1);
         Assert.assertTrue("Wrong epoch", m.peerEpoch == 1);
     }
-    
+
     @Test(timeout=20000)
-    public void testForwardCompatibility() 
+    public void testForwardCompatibility()
     throws Exception {
         populate();
 
         QuorumPeer peer = new QuorumPeer(peers, tmpdir[0], tmpdir[0], port[0], 3, 0, 1000, 2, 2);
         peer.setPeerState(ServerState.LOOKING);
         QuorumCnxManager mng = new QuorumCnxManager(peer);
-        
+
         /*
          * Check that it generates an internal notification correctly
          */
@@ -337,7 +337,7 @@ public class FLECompatibilityTest extends ZKTestCase {
         buffer.put(notBuffer);
         buffer.putLong( Long.MAX_VALUE );
         buffer.flip();
-        
+
         fle.manager.recvQueue.add(new Message(buffer, 2));
         Notification n = fle.recvqueue.take();
         Assert.assertTrue("Wrong state", n.state == ServerState.LOOKING);

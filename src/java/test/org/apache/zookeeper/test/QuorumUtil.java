@@ -99,9 +99,10 @@ public class QuorumUtil {
                 ps.clientPort = PortAssignment.unique();
                 peers.put(i, ps);
 
-                peersView.put(Long.valueOf(i), new QuorumServer(i, new InetSocketAddress(
-                        "127.0.0.1", ps.clientPort + 1000), new InetSocketAddress("127.0.0.1",
-                        PortAssignment.unique() + 1000), LearnerType.PARTICIPANT));
+                peersView.put(Long.valueOf(i),
+                              new QuorumServer(i, "127.0.0.1", ps.clientPort + 1000,
+                                               PortAssignment.unique() + 1000,
+                                               LearnerType.PARTICIPANT));
                 hostPort += "127.0.0.1:" + ps.clientPort + ((i == ALL) ? "" : ",");
             }
             for (int i = 1; i <= ALL; ++i) {
@@ -187,15 +188,15 @@ public class QuorumUtil {
                 ps.id, tickTime, initLimit, syncLimit);
         Assert.assertEquals(ps.clientPort, ps.peer.getClientPort());
 
-        ps.peer.start();    
+        ps.peer.start();
     }
-    
+
     public void restart(int id) throws IOException {
         start(id);
         Assert.assertTrue("Waiting for server up", ClientBase.waitForServerUp("127.0.0.1:"
                 + getPeer(id).clientPort, ClientBase.CONNECTION_TIMEOUT));
     }
-    
+
     public void startThenShutdown(int id) throws IOException {
         PeerStruct ps = getPeer(id);
         LOG.info("Creating QuorumPeer " + ps.id + "; public port " + ps.clientPort);
@@ -250,7 +251,7 @@ public class QuorumUtil {
         LOG.info("TearDown started");
 
         OSMXBean osMbean = new OSMXBean();
-        if (osMbean.getUnix() == true) {    
+        if (osMbean.getUnix() == true) {
             LOG.info("fdcount after test is: " + osMbean.getOpenFileDescriptorCount());
         }
 

@@ -147,7 +147,7 @@ public class BaseSysTest extends TestCase {
         qps = new QuorumPeer[count];
         qpsDirs = new File[count];
         for(int i = 1; i <= count; i++) {
-            peers.put(Long.valueOf(i), new QuorumServer(i, new InetSocketAddress("127.0.0.1", fakeBasePort + i)));
+            peers.put(Long.valueOf(i), new QuorumServer(i, "127.0.0.1", fakeBasePort + i, 0, null));
         }
         StringBuilder sb = new StringBuilder();
         for(int i = 0; i < count; i++) {
@@ -261,7 +261,7 @@ public class BaseSysTest extends TestCase {
     private void fakeStopClient(int index) {
         fakeBaseClients[index].stop();
     }
-    
+
     static public void main(String args[]) {
         JUnitCore.main(args);
     }

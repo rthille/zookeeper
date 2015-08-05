@@ -36,35 +36,34 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class FLEPredicateTest extends ZKTestCase {
-    
+
     protected static final Logger LOG = LoggerFactory.getLogger(FLEPredicateTest.class);
-    
+
     class MockFLE extends FastLeaderElection {
         MockFLE(QuorumPeer peer){
             super(peer, new QuorumCnxManager(peer));
         }
-        
+
         boolean predicate(long newId, long newZxid, long newEpoch, long curId, long curZxid, long curEpoch){
             return this.totalOrderPredicate(newId, newZxid, newEpoch, curId, curZxid, curEpoch);
         }
     }
-    
-    
+
+
     HashMap<Long,QuorumServer> peers;
-    
+
     @Test
     public void testPredicate() throws IOException {
-        
+
         peers = new HashMap<Long,QuorumServer>(3);
-        
+
         /*
          * Creates list of peers.
          */
         for(int i = 0; i < 3; i++) {
             peers.put(Long.valueOf(i),
-                    new QuorumServer(i,
-                            new InetSocketAddress(PortAssignment.unique()),
-                    new InetSocketAddress(PortAssignment.unique())));
+                      new QuorumServer(i, "0.0.0.0", PortAssignment.unique(),
+                                       PortAssignment.unique(), null));
         }
 
         /*
@@ -74,25 +73,25 @@ public class FLEPredicateTest extends ZKTestCase {
             File tmpDir = ClientBase.createTmpDir();
             QuorumPeer peer = new QuorumPeer(peers, tmpDir, tmpDir,
                                         PortAssignment.unique(), 3, 0, 1000, 2, 2);
-        
+
             MockFLE mock = new MockFLE(peer);
-            
+
             /*
              * Lower epoch must return false
              */
-            
+
             Assert.assertFalse (mock.predicate(4L, 0L, 0L, 3L, 0L, 2L));
-            
+
             /*
              * Later epoch
              */
             Assert.assertTrue (mock.predicate(0L, 0L, 1L, 1L, 0L, 0L));
-        
+
             /*
              * Higher zxid
              */
             Assert.assertTrue(mock.predicate(0L, 1L, 0L, 1L, 0L, 0L));
-        
+
             /*
              * Higher id
              */
